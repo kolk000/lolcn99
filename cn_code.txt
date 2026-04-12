@@ -1,0 +1,441 @@
+#Aim: Installation of NS-2/3 Network Simulator: Basics of Network Simulation
+
+# Create simulator object
+set ns [new Simulator]
+
+# Open NAM (animation) file
+set namf [open wired1.nam w]
+$ns namtrace-all $namf
+
+# Open trace file
+set tracef [open wired1.tr w]
+$ns trace-all $tracef
+
+# Define colors
+$ns color 1 Blue
+$ns color 2 Yellow
+$ns color 3 Red
+
+# Create nodes
+set n0 [$ns node]
+set n1 [$ns node]
+set n2 [$ns node]
+
+# Create links between nodes
+$ns duplex-link $n0 $n1 2Mb 100ms DropTail
+$ns duplex-link $n1 $n2 200Kb 100ms DropTail
+
+# Label nodes
+$ns at 0.0 "$n0 label Client1"
+$ns at 0.0 "$n1 label Router"
+$ns at 0.0 "$n2 label Client2"
+
+# Set node colors
+$ns at 0.0 "$n0 color Blue"
+$ns at 0.0 "$n1 color Red"
+$ns at 0.0 "$n2 color Green"
+
+# Change node shapes
+$ns at 0.0 "$n1 shape hexagon"
+$ns at 0.0 "$n2 shape square"
+
+# Finish procedure
+proc finish {} {
+    global ns tracef namf
+    $ns flush-trace
+    close $tracef
+    close $namf
+    exec nam wired1.nam &
+    exit 0
+}
+
+# Call finish procedure at 2 seconds
+$ns at 2.0 "finish"
+
+# Run simulation
+$ns run
+
+
+
+
+QUE => Aim: Simulating a Local Area Network and LAN topologies.
+# Create simulator
+set ns [new Simulator]
+
+# Open trace file
+set tracefile1 [open out.tr w]
+$ns trace-all $tracefile1
+
+# Open NAM file
+set namfile [open out.nam w]
+$ns namtrace-all $namfile
+
+# Define colors
+$ns color 1 Blue
+$ns color 2 Red
+
+# Finish procedure
+proc finish {} {
+    global ns tracefile1 namfile
+    $ns flush-trace
+    close $tracefile1
+    close $namfile
+    exec nam out.nam &
+    exit 0
+}
+
+# Create nodes
+set n0 [$ns node]
+set n1 [$ns node]
+set n2 [$ns node]
+set n3 [$ns node]
+set n4 [$ns node]
+set n5 [$ns node]
+
+# Change node appearance
+$ns at 0.0 "$n1 color Red"
+$ns at 0.0 "$n1 shape box"
+
+# Create links
+$ns duplex-link $n0 $n2 2Mb 10ms DropTail
+$ns duplex-link $n1 $n2 2Mb 10ms DropTail
+
+$ns simplex-link $n2 $n3 0.3Mb 100ms DropTail
+$ns simplex-link $n3 $n2 0.3Mb 100ms DropTail
+
+# Create LAN
+set lan [$ns newLan "$n3 $n4 $n5" 0.5Mb 40ms LL Queue/DropTail MAC/Csma/Cd Channel]
+
+# Set link orientation (for NAM)
+$ns duplex-link-op $n0 $n2 orient right-down
+$ns duplex-link-op $n1 $n2 orient right-up
+$ns simplex-link-op $n2 $n3 orient right
+$ns simplex-link-op $n3 $n2 orient left
+
+# Set queue size
+$ns queue-limit $n2 $n3 20
+
+# TCP connection
+set tcp [new Agent/TCP/Newreno]
+$ns attach-agent $n0 $tcp
+
+set sink [new Agent/TCPSink/DelAck]
+$ns attach-agent $n4 $sink
+
+$ns connect $tcp $sink
+$tcp set fid_ 1
+$tcp set packet_size_ 552
+
+# FTP over TCP
+set ftp [new Application/FTP]
+$ftp attach-agent $tcp
+
+# UDP connection
+set udp [new Agent/UDP]
+$ns attach-agent $n1 $udp
+
+set null [new Agent/Null]
+$ns attach-agent $n5 $null
+
+$ns connect $udp $null
+$udp set fid_ 2
+
+# CBR over UDP
+set cbr [new Application/Traffic/CBR]
+$cbr attach-agent $udp
+$cbr set packet_size_ 1000
+$cbr set rate_ 0.01Mb
+$cbr set random_ false
+
+# Schedule events
+$ns at 0.1 "$cbr start"
+$ns at 1.0 "$ftp start"
+$ns at 124.0 "$ftp stop"
+$ns at 125.5 "$cbr stop"
+
+# Plot TCP window
+proc plotWindow {tcpSource file} {
+    global ns
+    set time 0.1
+    set now [$ns now]
+    set cwnd [$tcpSource set cwnd_]
+    puts $file "$now $cwnd"
+    $ns at [expr $now+$time] "plotWindow $tcpSource $file"
+}
+
+# Open window file
+set winfile [open win.tr w]
+$ns at 0.1 "plotWindow $tcp $winfile"
+
+# Finish simulation
+$ns at 125.0 "finish"
+
+# Run
+$ns run
+
+
+
+
+
+QUE => Aim: Implement an Ethernet LAN using n nodes and set multiple traffic nodes and plot
+congestion window for different source / destination
+# Create simulator
+set ns [new Simulator]
+
+# Open trace file
+set tf [open lab7.tr w]
+$ns trace-all $tf
+
+# Open NAM file
+set nf [open lab7.nam w]
+$ns namtrace-all $nf
+
+# Create nodes
+set n0 [$ns node]
+set n1 [$ns node]
+set n2 [$ns node]
+set n3 [$ns node]
+
+# Create LAN
+set lan [$ns make-lan "$n0 $n1 $n2 $n3" 10Mb 10ms LL Queue/DropTail Mac/802_3]
+
+# TCP 0 connection
+set tcp0 [new Agent/TCP]
+$ns attach-agent $n0 $tcp0
+
+set sink3 [new Agent/TCPSink]
+$ns attach-agent $n3 $sink3
+
+$ns connect $tcp0 $sink3
+
+set ftp0 [new Application/FTP]
+$ftp0 attach-agent $tcp0
+
+# TCP 2 connection
+set tcp2 [new Agent/TCP]
+$ns attach-agent $n2 $tcp2
+
+set sink1 [new Agent/TCPSink]
+$ns attach-agent $n1 $sink1
+
+$ns connect $tcp2 $sink1
+
+set ftp2 [new Application/FTP]
+$ftp2 attach-agent $tcp2
+
+# Congestion window tracing
+set file1 [open file1.tr w]
+$tcp0 attach $file1
+$tcp0 trace cwnd_
+$tcp0 set maxcwnd_ 10
+
+set file2 [open file2.tr w]
+$tcp2 attach $file2
+$tcp2 trace cwnd_
+
+# Finish procedure
+proc finish {} {
+    global ns tf nf
+    $ns flush-trace
+    close $tf
+    close $nf
+    exec nam lab7.nam &
+    exit 0
+}
+
+# Scheduling
+$ns at 0.1 "$ftp0 start"
+$ns at 1.5 "$ftp0 stop"
+$ns at 2.0 "$ftp0 start"
+$ns at 3.0 "$ftp0 stop"
+
+$ns at 0.2 "$ftp2 start"
+$ns at 2.0 "$ftp2 stop"
+$ns at 2.5 "$ftp2 start"
+$ns at 4.0 "$ftp2 stop"
+
+# Finish
+$ns at 5.0 "finish"
+
+# Run
+$ns run
+
+
+
+
+QUE =>  Aim: Implementation of various MAC protocols.
+# Create simulator
+set ns [new Simulator]
+
+# Define colors
+$ns color 1 Blue
+$ns color 2 Red
+
+# Open trace file
+set tf [open out.tr w]
+$ns trace-all $tf
+
+# Open NAM file
+set nf [open out.nam w]
+$ns namtrace-all $nf
+
+# Open window file (for cwnd)
+set winfile [open win.tr w]
+
+# Finish procedure
+proc finish {} {
+    global ns tf nf
+    $ns flush-trace
+    close $tf
+    close $nf
+    exec nam out.nam &
+    exit 0
+}
+
+# Create nodes
+set n0 [$ns node]
+set n1 [$ns node]
+set n2 [$ns node]
+set n3 [$ns node]
+set n4 [$ns node]
+set n5 [$ns node]
+
+# Node appearance
+$ns at 0.0 "$n1 color Red"
+$ns at 0.0 "$n1 shape box"
+
+# Links
+$ns duplex-link $n0 $n2 2Mb 10ms DropTail
+$ns duplex-link $n1 $n2 2Mb 10ms DropTail
+
+$ns simplex-link $n2 $n3 0.3Mb 100ms DropTail
+$ns simplex-link $n3 $n2 0.3Mb 100ms DropTail
+
+# LAN with CSMA/CA
+set lan [$ns newLan "$n3 $n4 $n5" 0.5Mb 40ms LL Queue/DropTail MAC/Csma/Ca Channel]
+
+# TCP connection
+set tcp [new Agent/TCP/Newreno]
+$ns attach-agent $n0 $tcp
+
+set sink [new Agent/TCPSink/DelAck]
+$ns attach-agent $n4 $sink
+
+$ns connect $tcp $sink
+$tcp set fid_ 1
+$tcp set packetSize_ 552
+
+# FTP over TCP
+set ftp [new Application/FTP]
+$ftp attach-agent $tcp
+
+# UDP connection
+set udp [new Agent/UDP]
+$ns attach-agent $n1 $udp
+
+set null [new Agent/Null]
+$ns attach-agent $n5 $null
+
+$ns connect $udp $null
+$udp set fid_ 2
+
+# CBR over UDP
+set cbr [new Application/Traffic/CBR]
+$cbr attach-agent $udp
+$cbr set packet_size_ 1000
+$cbr set rate_ 0.01Mb
+$cbr set random_ false
+
+# Schedule events
+$ns at 0.1 "$cbr start"
+$ns at 1.0 "$ftp start"
+$ns at 123.0 "$ftp stop"
+$ns at 124.5 "$cbr stop"
+
+# Plot TCP window
+proc plotWindow {tcpSource file} {
+    global ns
+    set time 0.1
+    set now [$ns now]
+    set cwnd [$tcpSource set cwnd_]
+    puts $file "$now $cwnd"
+    $ns at [expr $now+$time] "plotWindow $tcpSource $file"
+}
+
+$ns at 0.1 "plotWindow $tcp $winfile"
+
+# Finish
+$ns at 125.0 "finish"
+
+# Run
+$ns run
+
+
+
+
+QUE =>  Aim: Performance Evaluation of routing Protocol
+# Create simulator
+set ns [new Simulator]
+
+# Open trace file
+set f0 [open out0.tr w]
+
+# Create nodes
+set n0 [$ns node]
+set n1 [$ns node]
+
+# Connect nodes
+$ns duplex-link $n0 $n1 1Mb 100ms DropTail
+
+# Create sink (receiver)
+set sink0 [new Agent/LossMonitor]
+$ns attach-agent $n1 $sink0
+
+# Create UDP source
+set udp0 [new Agent/UDP]
+$ns attach-agent $n0 $udp0
+
+# Connect source and sink
+$ns connect $udp0 $sink0
+
+# Create CBR traffic
+set cbr0 [new Application/Traffic/CBR]
+$cbr0 attach-agent $udp0
+$cbr0 set packet_size_ 1000
+$cbr0 set rate_ 0.5Mb
+
+# Record bandwidth
+proc record {} {
+    global sink0 f0 ns
+
+    set time 0.5
+    set now [$ns now]
+
+    set bw0 [$sink0 set bytes_]
+
+    puts $f0 "$now [expr $bw0/$time*8/1000000]"
+
+    $sink0 set bytes_ 0
+
+    $ns at [expr $now+$time] "record"
+}
+
+# Finish procedure
+proc finish {} {
+    global f0
+    close $f0
+    exec xgraph out0.tr -geometry 800x400 &
+    exit 0
+}
+
+# Start traffic
+$ns at 0.1 "$cbr0 start"
+
+# Start recording
+$ns at 0.0 "record"
+
+# Stop simulation
+$ns at 60.0 "finish"
+
+# Run
+$ns run
