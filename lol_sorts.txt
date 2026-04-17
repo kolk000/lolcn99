@@ -1,0 +1,232 @@
+<-------  kanpsack  -------->
+#include <iostream>
+using namespace std;
+
+int max(int a, int b) {
+    return (a > b) ? a : b;
+}
+
+int main() {
+    
+    int n = 3;
+    int W = 50;
+    int wt[3] = {10, 20, 30};
+    int val[3] = {60, 100, 120};
+
+    int dp[4][51]; 
+
+    for (int i = 0; i <= n; i++) {
+        for (int w = 0; w <= W; w++) {
+            if (i == 0 || w == 0)
+                dp[i][w] = 0;
+            else if (wt[i - 1] <= w)
+                dp[i][w] = max(val[i - 1] + dp[i - 1][w - wt[i - 1]], dp[i - 1][w]);
+            else
+                dp[i][w] = dp[i - 1][w];
+        }
+    }
+
+    cout << dp[n][W];
+}
+
+
+
+<------------ prim's --------->
+#include <iostream>
+using namespace std;
+
+#define INF 999999
+
+int main() {
+    int V = 5;
+
+    int graph[5][5] = {
+        {0, 2, 0, 6, 0},
+        {2, 0, 3, 8, 5},
+        {0, 3, 0, 0, 7},
+        {6, 8, 0, 0, 9},
+        {0, 5, 7, 9, 0}
+    };
+
+    int key[5];
+    int mst[5];
+    int parent[5];
+
+    for (int i = 0; i < V; i++) {
+        key[i] = INF;
+        mst[i] = 0;
+        parent[i] = -1;
+    }
+
+    key[0] = 0;
+
+    for (int count = 0; count < V; count++) {
+        int u = -1;
+
+        for (int i = 0; i < V; i++) {
+            if (!mst[i] && (u == -1 || key[i] < key[u])) {
+                u = i;
+            }
+        }
+
+        mst[u] = 1;
+
+        for (int v = 0; v < V; v++) {
+            if (graph[u][v] != 0 && !mst[v] && graph[u][v] < key[v]) {
+                key[v] = graph[u][v];
+                parent[v] = u;
+            }
+        }
+    }
+
+    int totalWeight = 0;
+
+    cout << "Edge \tWeight\n";
+    for (int i = 1; i < V; i++) {
+        cout << parent[i] << " - " << i << " \t" << graph[i][parent[i]] << endl;
+        totalWeight += graph[i][parent[i]];
+    }
+
+    cout << "Total weight of MST = " << totalWeight << endl;
+
+    return 0;
+}
+
+
+<----------- Krushkal's  ------------>
+#include <bits/stdc++.h>
+using namespace std;
+
+struct Edge {
+    int u, v, w;
+};
+
+bool compare(Edge a, Edge b) {
+    return a.w < b.w;
+}
+
+int findParent(int parent[], int i) {
+    if (parent[i] == i)
+        return i;
+    return findParent(parent, parent[i]);
+}
+
+void unionSet(int parent[], int x, int y) {
+    parent[x] = y;
+}
+
+int main() {
+    int n = 5;
+    int e = 7;
+
+    Edge edges[7] = {
+        {0,1,2},
+        {0,3,6},
+        {1,2,3},
+        {1,3,8},
+        {1,4,5},
+        {2,4,7},
+        {3,4,9}
+    };
+
+    sort(edges, edges + e, compare);
+
+    int parent[n];
+    for (int i = 0; i < n; i++) {
+        parent[i] = i;
+    }
+
+    for (int i = 0; i < e; i++) {
+        int u = edges[i].u;
+        int v = edges[i].v;
+
+        int pu = findParent(parent, u);
+        int pv = findParent(parent, v);
+
+        if (pu != pv) {
+            cout << u << " - " << v << endl;
+            unionSet(parent, pu, pv);
+        }
+    }
+
+    return 0;
+}
+
+
+<--------------- matrix chain multiplication ------------------->
+#include<bits/stdc++.h>
+using namespace std;
+
+int main(){
+    int arr[] = {1, 2, 3, 4};
+    int n = 4;
+
+    int dp[n][n];
+
+    for(int i=0;i<n;i++){
+        dp[i][i] = 0;
+    }
+
+    for(int len = 2; len < n; len++){
+        for(int i = 1; i < n - len + 1; i++){
+            int j = i + len - 1;
+            dp[i][j] = INT_MAX;
+
+            for(int k = i; k < j; k++){
+                int cost = dp[i][k] + dp[k+1][j] + arr[i-1]*arr[k]*arr[j];
+                dp[i][j] = min(dp[i][j], cost);
+            }
+        }
+    }
+
+    cout << dp[1][n-1];
+    return 0;
+}
+
+
+
+<-----------  travelling salesman problem------------->
+#include<bits/stdc++.h>
+using namespace std;
+
+int n = 4;
+int dist[4][4] = {
+    {0, 10, 15, 20},
+    {10, 0, 35, 25},
+    {15, 35, 0, 30},
+    {20, 25, 30, 0}
+};
+
+int dp[16][4];
+
+int solve(int mask, int pos) {
+
+    if(mask == (1 << n) - 1) {
+        return dist[pos][0];
+    }
+
+    if(dp[mask][pos] != -1)
+        return dp[mask][pos];
+
+    int ans = INT_MAX;
+
+    for(int city = 0; city < n; city++) {
+
+        if((mask & (1 << city)) == 0) {
+
+            int newAns = dist[pos][city] + solve(mask | (1 << city), city);
+            ans = min(ans, newAns);
+        }
+    }
+
+    return dp[mask][pos] = ans;
+}
+
+int main() {
+
+    memset(dp, -1, sizeof(dp));
+
+    cout << solve(1, 0);
+
+    return 0;
+}
